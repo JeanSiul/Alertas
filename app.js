@@ -13,7 +13,13 @@ const Config = {
   save(data) {
     localStorage.setItem(this.KEY, JSON.stringify(data));
   },
-  getBase() { return (this.get().n8nUrl || '').replace(/\/$/, ''); },
+  getBase() { 
+    // Primero usa variable de entorno de Vercel, luego localStorage
+    const envUrl = window.__N8N_URL__ || '';
+    const localUrl = (this.get().n8nUrl || '').replace(/\/$/, '');
+    return (envUrl || localUrl).replace(/\/$/, '');
+  },
+  isConfigured() { return !!(window.__N8N_URL__ || this.get().n8nUrl); },
   getToken() { return this.get().token || ''; },
   isConfigured() { return !!this.getBase(); }
 };
