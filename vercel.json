@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/webhook/dashboard/:accion",
+      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/dashboard/:accion"
+    },
+    {
       "source": "/api/webhook/canales/:accion",
       "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/canales/:accion"
     },
