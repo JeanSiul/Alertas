@@ -106,7 +106,15 @@ const Store = {
     };
     try {
       const res = await API.get(pathMap[entity]);
-      const data = Array.isArray(res) ? res : (res.data || []);
+      let data;
+      if (Array.isArray(res)) {
+        data = res;
+      } else if (res && typeof res === 'object' && !res.data) {
+        // n8n devuelve objeto único cuando hay 1 solo registro
+        data = [res];
+      } else {
+        data = res.data || [];
+      }
       this.set(entity, data);
     } catch(e) { console.warn('No se pudo cargar ' + entity + ':', e.message); }
   },
