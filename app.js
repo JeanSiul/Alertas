@@ -693,10 +693,47 @@ const App = {
   }
 };
 
+// ── VERSION CHECK ────────────────────────────────
+const VersionChecker = {
+  current: null,
+  async check() {
+    try {
+      const res = await fetch('/version.json?t=' + Date.now());
+      const data = await res.json();
+      if (!this.current) {
+        this.current = data.version;
+      } else if (this.current !== data.version) {
+        // Nueva versión detectada — notificar al usuario
+        this.notify(data.version);
+      }
+    } catch(e) {}
+  },
+  notify(newVersion) {
+    const banner = document.getElementById('update-banner');
+    if (banner) return; // ya está mostrando
+    const el = document.createElement('div');
+    el.id = 'update-banner';
+    el.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:#185FA5;color:#fff;padding:12px 20px;border-radius:8px;
+      font-size:13px;font-family:var(--font);z-index:9999;
+      display:flex;align-items:center;gap:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    `;
+    el.innerHTML = `
+      <span>🔄 Hay una nueva versión disponible</span>
+      <button onclick="location.reload()" style="background:#fff;color:#185FA5;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;">Actualizar</button>
+    `;
+    document.body.appendChild(el);
+  }
+};
+
 // ── BOOT ─────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
-  // Recarga automática cada 2 minutos
+  // Verificar nueva versión cada 60 segundos
+  VersionChecker.check();
+  setInterval(() => VersionChecker.check(), 60000);
+  // Recarga automática de datos cada 2 minutos
   setInterval(() => {
     if (Config.isConfigured()) App.render(App.current);
   }, 120000);
