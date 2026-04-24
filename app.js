@@ -285,11 +285,12 @@ const Sections = {
     ).join('');
 
     const rows = asigs.map(a => {
-      const d = H.dest(a.dest_id);
-      const c = H.canal(a.canal_id);
+      // Usar campos del JOIN directamente si están disponibles
+      const nombreDest = a.destinatario_nombre || (H.dest(a.dest_id) ? H.dest(a.dest_id).nombre : '—');
+      const codigoCanal = a.canal_codigo || (H.canal(a.canal_id) ? H.canal(a.canal_id).codigo : '—');
       return `<tr>
-        <td><div class="avatar-row">${d ? H.avatar(d.nombre) : ''}<span>${d ? d.nombre : '—'}</span></div></td>
-        <td>${c ? H.badge('blue', c.codigo, false) : '—'}</td>
+        <td><div class="avatar-row">${H.avatar(nombreDest)}<span>${nombreDest}</span></div></td>
+        <td>${H.badge('blue', codigoCanal, false)}</td>
         <td>${H.estado(a.activo)}</td>
         <td><div class="td-actions">
           <button class="btn btn-danger btn-sm" onclick="Asignaciones.toggle(${a.id})">${a.activo ? 'Desactivar' : 'Activar'}</button>
