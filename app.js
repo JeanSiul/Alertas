@@ -20,6 +20,7 @@ const Config = {
 
 // ── ENDPOINTS ────────────────────────────────────
 const ENDPOINTS = {
+  dashboard:      { stats: '/webhook/dashboard/stats' },
   canales:        { listar: '/webhook/canales/listar',        crear: '/webhook/canales/crear',        actualizar: '/webhook/canales/actualizar',        eliminar: '/webhook/canales/eliminar' },
   destinatarios:  { listar: '/webhook/destinatarios/listar',  crear: '/webhook/destinatarios/crear',  actualizar: '/webhook/destinatarios/actualizar',  eliminar: '/webhook/destinatarios/eliminar' },
   procesos:       { listar: '/webhook/procesos/listar',       crear: '/webhook/procesos/crear',       actualizar: '/webhook/procesos/actualizar',       eliminar: '/webhook/procesos/eliminar' },
@@ -84,7 +85,7 @@ const Modal = {
 
 // ── LOCAL STORE (se llena desde la API) ───────────
 const Store = {
-  _data: { canales: [], destinatarios: [], procesos: [], asignaciones: [], cola: [] },
+  _data: { dashboard_stats: [], canales: [], destinatarios: [], procesos: [], asignaciones: [], cola: [] },
   get(entity) { return [...(this._data[entity] || [])]; },
   set(entity, data) { this._data[entity] = data; },
   nextId(entity) { const items = this._data[entity]; return items.length ? Math.max(...items.map(i => i.id)) + 1 : 1; },
@@ -98,11 +99,12 @@ const Store = {
   async load(entity) {
     if (!Config.isConfigured()) return;
     const pathMap = {
-      canales:       ENDPOINTS.canales.listar,
-      destinatarios: ENDPOINTS.destinatarios.listar,
-      procesos:      ENDPOINTS.procesos.listar,
-      asignaciones:  ENDPOINTS.asignaciones.listar,
-      cola:          ENDPOINTS.cola.listar,
+      dashboard_stats: ENDPOINTS.dashboard.stats,
+      canales:         ENDPOINTS.canales.listar,
+      destinatarios:   ENDPOINTS.destinatarios.listar,
+      procesos:        ENDPOINTS.procesos.listar,
+      asignaciones:    ENDPOINTS.asignaciones.listar,
+      cola:            ENDPOINTS.cola.listar,
     };
     try {
       const res = await API.get(pathMap[entity]);
@@ -155,51 +157,42 @@ const Sections = {
 
   // ── DASHBOARD ──────────────────────────────────
   dashboard() {
-    const cola = Store.get('cola');
-    const pending = cola.filter(c => !c.enviado).length;
-    const errors  = cola.filter(c => !c.enviado && c.intentos >= c.max_intentos).length;
-    const sent    = cola.filter(c => c.enviado).length;
-    const procs   = Store.get('procesos').filter(p => p.activo).length;
-
-    const recentCola = cola.slice(0, 5).map(c => {
-      const p = H.proceso(c.proceso_id);
-      const canal = H.canal(c.canal_id);
-      const badge = c.enviado ? H.badge('green','Enviado') : c.intentos >= c.max_intentos ? H.badge('red','Error') : H.badge('amber','Pendiente');
-      return `<tr>
-        <td style="font-family:var(--mono);font-size:11px;color:var(--text-3)">#${c.id}</td>
-        <td><code>${p ? p.codigo : '—'}</code></td>
-        <td>${canal ? H.badge('blue', canal.codigo, false) : '—'}</td>
-        <td>${badge}</td>
-      </tr>`;
-    }).join('') || H.empty();
-
+    const stats = Store.get('dashboard_stats')[0] || {};
     const canalesRows = Store.get('canales').map(c => `
       <tr>
         <td>${c.nombre}</td>
         <td><code>${c.codigo}</code></td>
         <td>${H.estado(c.activo)}</td>
-      </tr>`).join('');
-
+      </tr>`).join('') || H.empty();
+    const colaRows = Store.get('cola').slice(0, 5).map(c => {
+      const badge = c.enviado ? H.badge('green','Enviado') : (c.intentos >= c.max_intentos ? H.badge('red','Error') : H.badge('amber','Pendiente'));
+      return `<tr>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text-3)">#${c.id}</td>
+        <td><code>${c.proceso_codigo || '—'}</code></td>
+        <td>${H.badge('blue', c.canal_codigo || '—', false)}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('') || H.empty('Sin alertas recientes');
     return `
       <div class="metrics">
         <div class="metric-card warn">
           <div class="metric-label">Pendientes en cola</div>
-          <div class="metric-value">${pending}</div>
+          <div class="metric-value">${stats.pendientes ?? '—'}</div>
           <div class="metric-sub">esperando envío</div>
         </div>
         <div class="metric-card success">
           <div class="metric-label">Enviadas hoy</div>
-          <div class="metric-value">${sent + 133}</div>
+          <div class="metric-value">${stats.enviadas_hoy ?? '—'}</div>
           <div class="metric-sub">exitosas</div>
         </div>
         <div class="metric-card danger">
           <div class="metric-label">Con error</div>
-          <div class="metric-value">${errors}</div>
+          <div class="metric-value">${stats.con_error ?? '—'}</div>
           <div class="metric-sub">max intentos alcanzados</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Procesos activos</div>
-          <div class="metric-value">${procs}</div>
+          <div class="metric-value">${stats.procesos_activos ?? '—'}</div>
           <div class="metric-sub">configurados</div>
         </div>
       </div>
@@ -207,7 +200,7 @@ const Sections = {
         <div class="card">
           <div class="card-header"><span class="card-title">Cola reciente</span></div>
           <table><thead><tr><th>ID</th><th>Proceso</th><th>Canal</th><th>Estado</th></tr></thead>
-          <tbody>${recentCola}</tbody></table>
+          <tbody>${colaRows}</tbody></table>
         </div>
         <div class="card">
           <div class="card-header"><span class="card-title">Canales configurados</span></div>
@@ -665,7 +658,7 @@ const App = {
     document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
     // Cargar datos desde API
     const entityMap = {
-      dashboard: ['canales','destinatarios','procesos','cola'],
+      dashboard: ['dashboard_stats','canales','cola'],
       canales: ['canales'], destinatarios: ['destinatarios'],
       procesos: ['procesos'], asignaciones: ['asignaciones','procesos','destinatarios','canales'],
       cola: ['cola','procesos','destinatarios','canales'],
