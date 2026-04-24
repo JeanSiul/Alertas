@@ -33,7 +33,11 @@ const API = {
     const base = Config.getBase();
     if (!base) throw new Error('URL de n8n no configurada');
     const token = Config.getToken();
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = {
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': '1',
+      'User-Agent': 'AlertManagerApp/1.0'
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const opts = { method, headers };
     if (body && method !== 'GET') opts.body = JSON.stringify(body);
