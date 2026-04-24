@@ -734,7 +734,9 @@ document.addEventListener('DOMContentLoaded', () => {
   VersionChecker.check();
   setInterval(() => VersionChecker.check(), 60000);
   // Recarga automática de datos cada 2 minutos
+  // Solo recarga si no hay un modal abierto (para no interrumpir al usuario)
   setInterval(() => {
-    if (Config.isConfigured()) App.render(App.current);
+    const modalAbierto = document.getElementById('modal-overlay').classList.contains('open');
+    if (Config.isConfigured() && !modalAbierto) App.render(App.current);
   }, 120000);
 });
