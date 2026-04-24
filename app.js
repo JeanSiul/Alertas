@@ -687,4 +687,10 @@ const App = {
 };
 
 // ── BOOT ─────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+  // Recarga automática cada 2 minutos
+  setInterval(() => {
+    if (Config.isConfigured()) App.render(App.current);
+  }, 120000);
+});
