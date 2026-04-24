@@ -6,15 +6,15 @@
     },
     {
       "source": "/api/webhook/destinatarios/:accion",
-      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/destinatarios-api/destinatarios/:accion"
+      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/destinatarios/:accion"
     },
     {
       "source": "/api/webhook/procesos/:accion",
-      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/procesos-api/procesos/:accion"
+      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/procesos/:accion"
     },
     {
       "source": "/api/webhook/asignaciones/:accion",
-      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/asignaciones-api/asignaciones/:accion"
+      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/asignaciones/:accion"
     },
     {
       "source": "/api/webhook/cola/listar",
