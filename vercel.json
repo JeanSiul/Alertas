@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/webhook/canales/:accion",
-      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/canales-api/canales/:accion"
+      "destination": "https://lissa-unfloatable-seditiously.ngrok-free.dev/webhook/canales/:accion"
     },
     {
       "source": "/api/webhook/destinatarios/:accion",
