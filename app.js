@@ -47,7 +47,7 @@ const API = {
   },
   get(path)        { return this.call(path, 'GET'); },
   post(path, data) { return this.call(path, 'POST', data); },
-  put(path, data)  { return this.call(path, 'PUT', data); },
+  put(path, data)  { return this.call(path, 'POST', data); },
 };
 
 // ── TOAST ────────────────────────────────────────
