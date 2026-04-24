@@ -41,7 +41,7 @@ const API = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const opts = { method, headers };
     if (body && method !== 'GET') opts.body = JSON.stringify(body);
-    const res = await fetch(base + path, opts);
+    const res = await fetch("/api" + path, opts);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   },
