@@ -82,46 +82,40 @@ const Modal = {
   closeOnOverlay(e) { if (e.target === document.getElementById('modal-overlay')) this.close(); }
 };
 
-// ── LOCAL STORE (demo / fallback) ─────────────────
+// ── LOCAL STORE (se llena desde la API) ───────────
 const Store = {
-  _data: {
-    canales: [
-      { id: 1, codigo: 'EMAIL',    nombre: 'Correo electrónico', activo: 1 },
-      { id: 2, codigo: 'WHATSAPP', nombre: 'WhatsApp Business',  activo: 1 },
-      { id: 3, codigo: 'TELEGRAM', nombre: 'Telegram Bot',       activo: 0 },
-    ],
-    destinatarios: [
-      { id: 1, nombre: 'Carlos Mendoza', email: 'carlos@empresa.com', whatsapp: '+51999111222', telegram: '@carlos_m', activo: 1 },
-      { id: 2, nombre: 'Ana Torres',     email: 'ana@empresa.com',    whatsapp: '+51999333444', telegram: '',           activo: 1 },
-      { id: 3, nombre: 'Luis García',    email: 'luis@empresa.com',   whatsapp: '',             telegram: '',           activo: 0 },
-    ],
-    procesos: [
-      { id: 1, codigo: 'FACTORING_VENCIMIENTO', nombre: 'Alertas de vencimiento',  descripcion: 'Notifica cuando una factura está por vencer', activo: 1 },
-      { id: 2, codigo: 'SOLICITUD_APROBADA',    nombre: 'Solicitud aprobada',      descripcion: 'Notifica aprobación de solicitudes',          activo: 1 },
-      { id: 3, codigo: 'PAGO_RECIBIDO',         nombre: 'Pago recibido',           descripcion: 'Confirma recepción de pagos',                 activo: 1 },
-    ],
-    asignaciones: [
-      { id: 1, proceso_id: 1, dest_id: 1, canal_id: 2, activo: 1 },
-      { id: 2, proceso_id: 1, dest_id: 2, canal_id: 1, activo: 1 },
-      { id: 3, proceso_id: 2, dest_id: 1, canal_id: 1, activo: 1 },
-      { id: 4, proceso_id: 2, dest_id: 2, canal_id: 2, activo: 0 },
-    ],
-    cola: [
-      { id: 101, proceso_id: 1, dest_id: 1, canal_id: 2, intentos: 0, max_intentos: 3, enviado: 0, fecha_creacion: '2026-04-23 10:05' },
-      { id: 102, proceso_id: 1, dest_id: 2, canal_id: 1, intentos: 1, max_intentos: 3, enviado: 0, fecha_creacion: '2026-04-23 10:05' },
-      { id: 103, proceso_id: 2, dest_id: 1, canal_id: 1, intentos: 3, max_intentos: 3, enviado: 0, fecha_creacion: '2026-04-23 09:00' },
-      { id: 104, proceso_id: 3, dest_id: 2, canal_id: 2, intentos: 0, max_intentos: 3, enviado: 1, fecha_creacion: '2026-04-23 08:30' },
-    ],
-  },
+  _data: { canales: [], destinatarios: [], procesos: [], asignaciones: [], cola: [] },
   get(entity) { return [...(this._data[entity] || [])]; },
+  set(entity, data) { this._data[entity] = data; },
   nextId(entity) { const items = this._data[entity]; return items.length ? Math.max(...items.map(i => i.id)) + 1 : 1; },
-  add(entity, item) { item.id = this.nextId(entity); this._data[entity].push(item); return item; },
+  add(entity, item) { this._data[entity].push(item); return item; },
   update(entity, id, changes) {
     const idx = this._data[entity].findIndex(i => i.id === id);
     if (idx !== -1) Object.assign(this._data[entity][idx], changes);
     return this._data[entity][idx];
   },
-  remove(entity, id) { this._data[entity] = this._data[entity].filter(i => i.id !== id); }
+  remove(entity, id) { this._data[entity] = this._data[entity].filter(i => i.id !== id); },
+  async load(entity) {
+    if (!Config.isConfigured()) return;
+    const pathMap = {
+      canales:       ENDPOINTS.canales.listar,
+      destinatarios: ENDPOINTS.destinatarios.listar,
+      procesos:      ENDPOINTS.procesos.listar,
+      asignaciones:  ENDPOINTS.asignaciones.listar,
+      cola:          ENDPOINTS.cola.listar,
+    };
+    try {
+      const res = await API.get(pathMap[entity]);
+      const data = Array.isArray(res) ? res : (res.data || []);
+      this.set(entity, data);
+    } catch(e) { console.warn('No se pudo cargar ' + entity + ':', e.message); }
+  },
+  async loadAll() {
+    await Promise.all([
+      this.load('canales'), this.load('destinatarios'), this.load('procesos'),
+      this.load('asignaciones'), this.load('cola'),
+    ]);
+  }
 };
 
 // ── HELPERS ──────────────────────────────────────
@@ -422,10 +416,8 @@ const Canales = {
         if (id) await API.put(ENDPOINTS.canales.actualizar, { id, ...data });
         else     await API.post(ENDPOINTS.canales.crear, data);
       }
-      if (id) Store.update('canales', id, data);
-      else    Store.add('canales', data);
       Modal.close();
-      App.render('canales');
+      await App.render('canales');
       Toast.ok(id ? 'Canal actualizado' : 'Canal creado');
     } catch(e) { Toast.err('Error: ' + e.message); }
   },
@@ -487,10 +479,8 @@ const Destinatarios = {
         if (id) await API.put(ENDPOINTS.destinatarios.actualizar, { id, ...data });
         else     await API.post(ENDPOINTS.destinatarios.crear, data);
       }
-      if (id) Store.update('destinatarios', id, data);
-      else    Store.add('destinatarios', data);
       Modal.close();
-      App.render('destinatarios');
+      await App.render('destinatarios');
       Toast.ok(id ? 'Destinatario actualizado' : 'Destinatario creado');
     } catch(e) { Toast.err('Error: ' + e.message); }
   },
@@ -544,10 +534,8 @@ const Procesos = {
         if (id) await API.put(ENDPOINTS.procesos.actualizar, { id, ...data });
         else     await API.post(ENDPOINTS.procesos.crear, data);
       }
-      if (id) Store.update('procesos', id, data);
-      else    Store.add('procesos', data);
       Modal.close();
-      App.render('procesos');
+      await App.render('procesos');
       Toast.ok(id ? 'Proceso actualizado' : 'Proceso creado');
     } catch(e) { Toast.err('Error: ' + e.message); }
   },
@@ -661,10 +649,21 @@ const App = {
     this.render('dashboard');
   },
 
-  render(section) {
+  async render(section) {
     this.current = section;
     document.getElementById('page-title').textContent = PageTitles[section] || section;
     document.getElementById('topbar-actions').innerHTML = TopbarActions[section] || '';
+    // Mostrar loading
+    document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+    // Cargar datos desde API
+    const entityMap = {
+      dashboard: ['canales','destinatarios','procesos','cola'],
+      canales: ['canales'], destinatarios: ['destinatarios'],
+      procesos: ['procesos'], asignaciones: ['asignaciones','procesos','destinatarios','canales'],
+      cola: ['cola','procesos','destinatarios','canales'],
+    };
+    const toLoad = entityMap[section] || [];
+    await Promise.all(toLoad.map(e => Store.load(e)));
     document.getElementById('content').innerHTML = Sections[section] ? Sections[section]() : '<div class="empty">Sección no encontrada</div>';
   },
 
